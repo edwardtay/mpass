@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="96" fill="#65B3AE"/>
+
+  <!-- Shield shape (privacy/security) -->
+  <path d="M256 80C256 80 128 120 128 200V320C128 380 180 440 256 464C332 440 384 380 384 320V200C384 120 256 80 256 80Z" fill="#1C2128" fill-opacity="0.9"/>
+
+  <!-- Inner shield highlight -->
+  <path d="M256 108C256 108 152 142 152 210V316C152 365 195 415 256 435C317 415 360 365 360 316V210C360 142 256 108 256 108Z" fill="#0D1117"/>
+
+  <!-- Stylized "m" letter -->
+  <path d="M176 320V220C176 200 190 186 210 186C230 186 244 200 244 220V320" stroke="#65B3AE" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M244 320V220C244 200 258 186 278 186C298 186 312 200 312 220V320" stroke="#65B3AE" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- ZK circuit dots -->
+  <circle cx="176" cy="320" r="8" fill="#65B3AE"/>
+  <circle cx="244" cy="320" r="8" fill="#65B3AE"/>
+  <circle cx="312" cy="320" r="8" fill="#65B3AE"/>
+
+  <!-- Top verification checkmark -->
+  <path d="M232 150L250 168L288 130" stroke="#65B3AE" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

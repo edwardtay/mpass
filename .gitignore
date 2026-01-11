@@ -1,0 +1,60 @@
+# Private/sensitive files - NEVER COMMIT
+/private/
+.env
+.env.*
+!.env.example
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# Build outputs
+dist/
+build/
+
+# Foundry
+/contracts/cache/
+/contracts/out/
+/contracts/broadcast/
+
+# ZK Circuit artifacts (large files - can be regenerated)
+*.ptau
+*_0000.zkey
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Local Netlify folder
+.netlify/
+
+# Vercel
+.vercel/
+
+# Debug
+.pnp.*

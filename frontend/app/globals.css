@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mantle-green: #65B3AE;
+  --mantle-dark: #0D1117;
+  --mantle-gray: #1C2128;
+}
+
+body {
+  background: var(--mantle-dark);
+  color: white;
+}
+
+.btn-primary {
+  @apply bg-[#65B3AE] hover:bg-[#4A9994] text-black font-semibold py-3 px-6 rounded-lg transition-colors;
+}
+
+.btn-secondary {
+  @apply border border-[#65B3AE] text-[#65B3AE] hover:bg-[#65B3AE] hover:text-black font-semibold py-3 px-6 rounded-lg transition-colors;
+}
+
+.card {
+  @apply bg-[#1C2128] border border-gray-700 rounded-xl p-6;
+}
