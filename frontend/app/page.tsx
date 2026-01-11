@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect, useWriteContract, useReadContract, useSwitchChain } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useWriteContract, useReadContract, useSwitchChain, useWaitForTransactionReceipt } from "wagmi";
 import { mantleSepoliaTestnet } from "wagmi/chains";
 import { useState, useEffect } from "react";
 import { PassportScanner } from "@/components/PassportScanner";
@@ -102,7 +102,7 @@ export default function Home() {
   }, []);
 
   // Check if credential is registered on-chain
-  const { data: isRegistered } = useReadContract({
+  const { data: isRegistered, refetch: refetchRegistration } = useReadContract({
     address: contracts.registry as `0x${string}`,
     abi: REGISTRY_ABI,
     functionName: "credentialExists",
@@ -112,6 +112,18 @@ export default function Home() {
 
   // Write contract hook for registration
   const { writeContract, isPending: isWritePending, data: txHash } = useWriteContract();
+
+  // Wait for transaction confirmation and refetch status
+  const { isSuccess: txConfirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+
+  // Refetch registration status when tx confirms
+  useEffect(() => {
+    if (txConfirmed && credential) {
+      refetchRegistration();
+    }
+  }, [txConfirmed, credential, refetchRegistration]);
 
   // Handle passport scan completion
   const handleScanComplete = async (data: PassportData) => {
