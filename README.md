@@ -2,6 +2,23 @@
 
 Privacy-preserving ZK-KYC identity layer for Mantle. Verify once, prove anywhere.
 
+## Live Demo
+
+**Frontend:** https://mantle-mpass.vercel.app
+
+**Verifier Dashboard:** https://mantle-mpass.vercel.app/verify
+
+**GitHub:** https://github.com/edwardtay/mpass
+
+## Features
+
+- **Passport OCR Scanning** - Tesseract.js for MRZ reading with camera
+- **ZK Proof Generation** - Real Groth16 proofs in browser via snarkjs
+- **On-Chain Verification** - Verify proofs on Mantle Sepolia
+- **Proof Types** - Age (18+), Jurisdiction, Accredited Investor, AML
+- **Proof History** - Track and export generated proofs
+- **Verifier Dashboard** - Third parties can verify proofs without accessing personal data
+
 ## Production ZK Stack (No Mocks)
 
 This is a **fully functional ZK implementation**, not a demo:
@@ -102,7 +119,7 @@ age_verify_final.zkey # After ceremony contribution
 ## Project Structure
 
 ```
-mPass/
+MantlePass/
 ├── circuits/
 │   ├── prod/
 │   │   ├── age_verify.circom        # Production circuit
@@ -252,9 +269,9 @@ const input = {
   birthDay: "15",
   secret: "123456789...",  // Random field element
   // Public
-  currentYear: "2025",
+  currentYear: "2026",
   currentMonth: "1",
-  currentDay: "11",
+  currentDay: "12",
   minAge: "18",
   eventId: "1",
 };
