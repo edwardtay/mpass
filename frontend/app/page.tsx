@@ -662,39 +662,57 @@ export default function Home() {
                   {proofHistory.map((entry) => (
                     <div
                       key={entry.id}
-                      className="bg-black/30 rounded-lg p-3 flex items-center justify-between"
+                      className="bg-black/30 rounded-lg p-3"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">
-                          {entry.type === "age" && "🎂"}
-                          {entry.type === "jurisdiction" && "🌍"}
-                          {entry.type === "accredited" && "💰"}
-                          {entry.type === "aml" && "🔍"}
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium capitalize">{entry.type} Proof</div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(entry.timestamp).toLocaleString()}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl">
+                            {entry.type === "age" && "🎂"}
+                            {entry.type === "jurisdiction" && "🌍"}
+                            {entry.type === "accredited" && "💰"}
+                            {entry.type === "aml" && "🔍"}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium capitalize">{entry.type} Proof</div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(entry.timestamp).toLocaleString()}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            entry.verified ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                          }`}>
+                            {entry.verified ? "Valid" : "Invalid"}
+                          </span>
+                          {entry.txHash && (
+                            <a
+                              href={`https://sepolia.mantlescan.xyz/tx/${entry.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#65B3AE] text-xs hover:underline"
+                            >
+                              Tx
+                            </a>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          entry.verified ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
-                        }`}>
-                          {entry.verified ? "Valid" : "Invalid"}
-                        </span>
-                        {entry.txHash && (
-                          <a
-                            href={`https://sepolia.mantlescan.xyz/tx/${entry.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#65B3AE] text-xs hover:underline"
-                          >
-                            Tx
-                          </a>
-                        )}
-                      </div>
+                      {/* Copy JSON for Verifier */}
+                      <button
+                        onClick={() => {
+                          const proofJson = JSON.stringify({
+                            type: entry.type,
+                            commitment: entry.commitment,
+                            nullifier: entry.nullifier,
+                            verified: entry.verified,
+                          }, null, 2);
+                          navigator.clipboard.writeText(proofJson);
+                          alert("Proof JSON copied! Paste it on the Verify page.");
+                        }}
+                        className="mt-2 w-full text-xs py-1.5 border border-gray-600 text-gray-400 rounded hover:border-[#65B3AE] hover:text-[#65B3AE] transition-colors"
+                      >
+                        Copy JSON for Verifier
+                      </button>
                     </div>
                   ))}
                 </div>
