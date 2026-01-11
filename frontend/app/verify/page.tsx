@@ -266,20 +266,25 @@ export default function VerifyPage() {
               <h2 className="text-xl font-bold mb-4">Verification Results</h2>
 
               <div className="space-y-3">
+                {/* Primary Check - ZK Proof Valid */}
                 <div className={`p-4 rounded-lg border flex items-center justify-between ${
-                  verificationResult.credentialRegistered
+                  verificationResult.proofValid
                     ? "bg-green-500/10 border-green-500/30"
                     : "bg-red-500/10 border-red-500/30"
                 }`}>
                   <div>
-                    <p className="text-white font-semibold">Credential Registered</p>
-                    <p className="text-gray-400 text-xs">Commitment exists in on-chain registry</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-white font-semibold">ZK Proof Valid</p>
+                      <span className="text-[10px] bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded">PRIMARY</span>
+                    </div>
+                    <p className="text-gray-400 text-xs">Groth16 proof is mathematically valid</p>
                   </div>
-                  <span className={`text-2xl ${verificationResult.credentialRegistered ? "text-green-400" : "text-red-400"}`}>
-                    {verificationResult.credentialRegistered ? "✓" : "✗"}
+                  <span className={`text-2xl ${verificationResult.proofValid ? "text-green-400" : "text-red-400"}`}>
+                    {verificationResult.proofValid ? "✓" : "✗"}
                   </span>
                 </div>
 
+                {/* Nullifier Check */}
                 <div className={`p-4 rounded-lg border flex items-center justify-between ${
                   !verificationResult.nullifierUsed
                     ? "bg-green-500/10 border-green-500/30"
@@ -287,47 +292,56 @@ export default function VerifyPage() {
                 }`}>
                   <div>
                     <p className="text-white font-semibold">Nullifier Fresh</p>
-                    <p className="text-gray-400 text-xs">Proof has not been used before</p>
+                    <p className="text-gray-400 text-xs">Proof has not been used before (replay protection)</p>
                   </div>
                   <span className={`text-2xl ${!verificationResult.nullifierUsed ? "text-green-400" : "text-red-400"}`}>
                     {!verificationResult.nullifierUsed ? "✓" : "✗"}
                   </span>
                 </div>
 
+                {/* Optional Check - Credential Registered */}
                 <div className={`p-4 rounded-lg border flex items-center justify-between ${
-                  verificationResult.proofValid
+                  verificationResult.credentialRegistered
                     ? "bg-green-500/10 border-green-500/30"
-                    : "bg-yellow-500/10 border-yellow-500/30"
+                    : "bg-gray-500/10 border-gray-500/30"
                 }`}>
                   <div>
-                    <p className="text-white font-semibold">Proof Valid</p>
-                    <p className="text-gray-400 text-xs">ZK proof verification status</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-white font-semibold">On-Chain Registration</p>
+                      <span className="text-[10px] bg-gray-500/30 text-gray-400 px-1.5 py-0.5 rounded">OPTIONAL</span>
+                    </div>
+                    <p className="text-gray-400 text-xs">Commitment registered in on-chain registry</p>
                   </div>
-                  <span className={`text-2xl ${verificationResult.proofValid ? "text-green-400" : "text-yellow-400"}`}>
-                    {verificationResult.proofValid ? "✓" : "?"}
+                  <span className={`text-2xl ${verificationResult.credentialRegistered ? "text-green-400" : "text-gray-500"}`}>
+                    {verificationResult.credentialRegistered ? "✓" : "−"}
                   </span>
                 </div>
 
-                {/* Overall Result */}
+                {/* Overall Result - Based on Proof Valid + Nullifier Fresh */}
                 <div className={`p-6 rounded-lg border mt-4 text-center ${
-                  verificationResult.credentialRegistered && !verificationResult.nullifierUsed
+                  verificationResult.proofValid && !verificationResult.nullifierUsed
                     ? "bg-green-500/20 border-green-500"
                     : "bg-red-500/20 border-red-500"
                 }`}>
                   <p className={`text-2xl font-bold ${
-                    verificationResult.credentialRegistered && !verificationResult.nullifierUsed
+                    verificationResult.proofValid && !verificationResult.nullifierUsed
                       ? "text-green-400"
                       : "text-red-400"
                   }`}>
-                    {verificationResult.credentialRegistered && !verificationResult.nullifierUsed
-                      ? "✓ VERIFIED"
+                    {verificationResult.proofValid && !verificationResult.nullifierUsed
+                      ? "✓ PROOF VERIFIED"
                       : "✗ VERIFICATION FAILED"}
                   </p>
                   <p className="text-gray-400 text-sm mt-2">
-                    {verificationResult.credentialRegistered && !verificationResult.nullifierUsed
-                      ? "This proof is valid and can be trusted"
-                      : "This proof failed one or more checks"}
+                    {verificationResult.proofValid && !verificationResult.nullifierUsed
+                      ? "This ZK proof is cryptographically valid and hasn't been used before"
+                      : "This proof failed verification checks"}
                   </p>
+                  {verificationResult.proofValid && !verificationResult.nullifierUsed && !verificationResult.credentialRegistered && (
+                    <p className="text-gray-500 text-xs mt-2">
+                      Note: Credential not yet registered on-chain (optional for verification)
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -339,9 +353,14 @@ export default function VerifyPage() {
           <div className="bg-[#1C2128]/50 border border-gray-800 rounded-xl p-4">
             <h3 className="text-sm font-semibold text-gray-400 mb-3">How Verification Works</h3>
             <div className="space-y-2 text-xs text-gray-500">
-              <p>1. <strong className="text-gray-400">Credential Check:</strong> Verifies the commitment hash is registered on-chain</p>
-              <p>2. <strong className="text-gray-400">Nullifier Check:</strong> Ensures this specific proof hasn't been used before</p>
-              <p>3. <strong className="text-gray-400">Proof Validity:</strong> Confirms the ZK-SNARK proof is mathematically valid</p>
+              <p>1. <strong className="text-purple-400">ZK Proof Valid (Primary):</strong> Confirms the Groth16 ZK-SNARK proof is mathematically valid</p>
+              <p>2. <strong className="text-gray-400">Nullifier Fresh:</strong> Ensures this specific proof hasn't been used before (replay protection)</p>
+              <p>3. <strong className="text-gray-500">On-Chain Registration (Optional):</strong> Extra check that credential is registered in on-chain registry</p>
+            </div>
+            <div className="mt-3 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+              <p className="text-xs text-purple-300">
+                <strong>For demo:</strong> A proof is considered verified if it passes the ZK validity check and hasn't been replayed. On-chain registration provides additional trust for production use.
+              </p>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-800">
               <p className="text-xs text-gray-500">
