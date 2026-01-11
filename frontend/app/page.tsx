@@ -349,8 +349,8 @@ export default function Home() {
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 sm:mb-12">
         <div className="flex items-center gap-3">
-          <img src="/favicon.svg" alt="mPass" className="w-8 h-8 sm:w-10 sm:h-10" />
-          <span className="text-xl sm:text-2xl font-bold">mPass</span>
+          <img src="/favicon.svg" alt="MantlePass" className="w-8 h-8 sm:w-10 sm:h-10" />
+          <span className="text-xl sm:text-2xl font-bold">MantlePass</span>
           <span className="text-xs bg-[#65B3AE]/20 text-[#65B3AE] px-2 py-1 rounded hidden sm:inline">
             Mantle Sepolia
           </span>

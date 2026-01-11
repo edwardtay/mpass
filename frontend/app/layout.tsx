@@ -6,8 +6,8 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "mPass - ZK Identity for Mantle",
-  description: "Privacy-preserving KYC credentials powered by zero-knowledge proofs",
+  title: "MantlePass - ZK Identity for Mantle",
+  description: "Privacy-preserving KYC credentials powered by zero-knowledge proofs on Mantle",
   icons: {
     icon: "/favicon.svg",
     apple: "/logo.svg",

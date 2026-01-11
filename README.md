@@ -1,4 +1,4 @@
-# mPass
+# MantlePass
 
 Privacy-preserving ZK-KYC identity layer for Mantle. Verify once, prove anywhere.
 
@@ -24,7 +24,7 @@ When you register a credential, the Poseidon hash is computed and stored on-chai
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           mPass Protocol                                 │
+│                           MantlePass Protocol                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  User Device (Client-Side)                                              │

@@ -129,8 +129,8 @@ export default function VerifyPage() {
       <header className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-3 hover:opacity-80">
-            <img src="/favicon.svg" alt="mPass" className="w-8 h-8 sm:w-10 sm:h-10" />
-            <span className="text-xl sm:text-2xl font-bold">mPass</span>
+            <img src="/favicon.svg" alt="MantlePass" className="w-8 h-8 sm:w-10 sm:h-10" />
+            <span className="text-xl sm:text-2xl font-bold">MantlePass</span>
           </Link>
           <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded">
             Verifier Dashboard
@@ -151,7 +151,7 @@ export default function VerifyPage() {
           Verify <span className="text-purple-400">ZK Proofs</span>
         </h1>
         <p className="text-gray-400 text-sm sm:text-lg max-w-xl mx-auto">
-          Verify mPass proofs without accessing any personal data
+          Verify MantlePass proofs without accessing any personal data
         </p>
       </section>
 

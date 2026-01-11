@@ -1,4 +1,4 @@
-// ZK Proof Generation for mPass
+// ZK Proof Generation for MantlePass
 // Uses real snarkjs for Groth16 proof generation
 
 export interface PassportData {

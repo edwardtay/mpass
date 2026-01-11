@@ -1,8 +1,8 @@
-# mPass API Documentation
+# MantlePass API Documentation
 
 ## Overview
 
-mPass provides privacy-preserving identity verification using Zero-Knowledge proofs on Mantle Network. This documentation covers smart contract interfaces, frontend SDK usage, and integration patterns.
+MantlePass provides privacy-preserving identity verification using Zero-Knowledge proofs on Mantle Network. This documentation covers smart contract interfaces, frontend SDK usage, and integration patterns.
 
 ## Table of Contents
 
@@ -453,6 +453,6 @@ try {
 
 ## Support
 
-- GitHub: [mPass Repository](https://github.com/your-repo/mpass)
+- GitHub: [MantlePass Repository](https://github.com/your-repo/mpass)
 - Documentation: This file
 - Issues: GitHub Issues
