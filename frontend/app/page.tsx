@@ -87,6 +87,7 @@ export default function Home() {
   const [isVerifyingOnChain, setIsVerifyingOnChain] = useState(false);
   const [proofHistory, setProofHistory] = useState<ProofHistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [proofError, setProofError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
 
   const chainId = chain?.id || 5003;
@@ -163,6 +164,7 @@ export default function Home() {
     setIsGeneratingProof(true);
     setGeneratedProof(null);
     setProofVerified(null);
+    setProofError(null);
     setProofStep("Loading circuit...");
 
     try {
@@ -214,8 +216,35 @@ export default function Home() {
       setProofHistory(getProofHistory());
     } catch (error: any) {
       console.error("Failed to generate proof:", error);
-      setProofStep("Error: " + (error.message || "Failed"));
-      alert(error.message || "Failed to generate proof");
+
+      // Parse error for user-friendly message
+      let errorMessage = error.message || "Failed to generate proof";
+      let errorDetails = "";
+
+      if (errorMessage.includes("Age") && errorMessage.includes("below minimum")) {
+        const ageMatch = errorMessage.match(/Age (\d+)/);
+        const minMatch = errorMessage.match(/minimum (\d+)/);
+        errorMessage = "Age Verification Failed";
+        errorDetails = `Your birth date indicates you're ${ageMatch?.[1] || "under"} years old. Minimum required: ${minMatch?.[1] || "18"}+. Please check your birth date.`;
+      } else if (errorMessage.includes("Num2Bits") || errorMessage.includes("Assert Failed")) {
+        errorMessage = "Invalid Birth Date";
+        errorDetails = "The birth year entered is invalid or out of range. Please enter a realistic birth date (e.g., 1990-2005 for 18+ verification).";
+      } else if (errorMessage.includes("income") || errorMessage.includes("accredited")) {
+        errorMessage = "Accredited Investor Check Failed";
+        errorDetails = "Your income level doesn't meet the accredited investor threshold ($200k+). Please update your credential with accurate income information.";
+      } else if (errorMessage.includes("sanctioned") || errorMessage.includes("OFAC")) {
+        errorMessage = "AML/Sanctions Check Failed";
+        errorDetails = "Your nationality is on the OFAC sanctions list. Users from sanctioned jurisdictions cannot pass AML verification.";
+      } else if (errorMessage.includes("jurisdiction") || errorMessage.includes("blocked")) {
+        errorMessage = "Jurisdiction Check Failed";
+        errorDetails = "Your nationality is in a blocked jurisdiction for this verification.";
+      } else if (errorMessage.includes("WASM") || errorMessage.includes("circuit")) {
+        errorMessage = "Circuit Loading Error";
+        errorDetails = "Failed to load the ZK circuit. Please refresh the page and try again.";
+      }
+
+      setProofError(errorDetails || errorMessage);
+      setProofStep("Error: " + errorMessage);
     } finally {
       setIsGeneratingProof(false);
     }
@@ -530,6 +559,71 @@ export default function Home() {
                 )}
               </button>
 
+              {/* Loading Progress Steps */}
+              {isGeneratingProof && (
+                <div className="mt-4 bg-black/30 rounded-lg p-4">
+                  <div className="space-y-2">
+                    {[
+                      { step: "Loading circuit...", icon: "📦" },
+                      { step: "Computing witness...", icon: "🔢" },
+                      { step: "Generating Groth16 proof...", icon: "🔐" },
+                      { step: "Verifying locally...", icon: "✅" },
+                    ].map((item, i) => {
+                      const isActive = proofStep === item.step;
+                      const isPast = [
+                        "Loading circuit...",
+                        "Computing witness...",
+                        "Generating Groth16 proof...",
+                        "Verifying locally...",
+                      ].indexOf(proofStep) > i;
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-2 text-sm transition-opacity ${
+                            isActive ? "opacity-100" : isPast ? "opacity-50" : "opacity-30"
+                          }`}
+                        >
+                          <span>{isPast ? "✓" : isActive ? item.icon : "○"}</span>
+                          <span className={isActive ? "text-[#65B3AE] font-medium" : "text-gray-400"}>
+                            {item.step.replace("...", "")}
+                          </span>
+                          {isActive && (
+                            <span className="ml-auto">
+                              <svg className="animate-spin h-4 w-4 text-[#65B3AE]" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-3">
+                    ZK proof generation may take 10-30 seconds depending on your device.
+                  </p>
+                </div>
+              )}
+
+              {/* Error Display */}
+              {proofError && (
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <span className="text-red-400 text-xl">⚠️</span>
+                    <div>
+                      <p className="text-red-400 font-medium">{proofStep?.replace("Error: ", "")}</p>
+                      <p className="text-red-300/80 text-sm mt-1">{proofError}</p>
+                      <button
+                        onClick={() => setProofError(null)}
+                        className="text-red-400 text-xs mt-2 hover:underline"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {generatedProof && (
                 <div className="mt-6">
                   <div className="flex justify-between items-center mb-2">
@@ -543,7 +637,7 @@ export default function Home() {
                   </div>
 
                   {/* Key values with copy buttons */}
-                  <div className="bg-black/50 rounded-lg p-4 space-y-3 mb-3">
+                  <div className="bg-black/50 rounded-lg p-3 sm:p-4 space-y-3 mb-3">
                     <div>
                       <div className="flex justify-between items-center text-xs mb-1">
                         <span className="text-gray-500">Nullifier (prevents replay)</span>
@@ -554,7 +648,7 @@ export default function Home() {
                           Copy
                         </button>
                       </div>
-                      <div className="font-mono text-xs text-yellow-400 break-all">
+                      <div className="font-mono text-[10px] sm:text-xs text-yellow-400 break-all">
                         {generatedProof.nullifier}
                       </div>
                     </div>
@@ -568,7 +662,7 @@ export default function Home() {
                           Copy
                         </button>
                       </div>
-                      <div className="font-mono text-xs text-green-400 break-all">
+                      <div className="font-mono text-[10px] sm:text-xs text-green-400 break-all">
                         {generatedProof.commitment}
                       </div>
                     </div>
@@ -578,7 +672,24 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <details className="text-xs">
+                  {/* Copy for Verifier Button */}
+                  <button
+                    onClick={() => {
+                      const verifierJson = JSON.stringify({
+                        type: selectedProofType,
+                        commitment: generatedProof.commitment,
+                        nullifier: generatedProof.nullifier,
+                        verified: proofVerified ?? true,
+                      }, null, 2);
+                      navigator.clipboard.writeText(verifierJson);
+                      alert("Proof JSON copied! Go to /verify page and paste it there.");
+                    }}
+                    className="w-full mt-3 py-2.5 border-2 border-[#65B3AE] text-[#65B3AE] font-medium rounded-lg hover:bg-[#65B3AE]/10 transition-colors"
+                  >
+                    📋 Copy JSON for Verifier Page
+                  </button>
+
+                  <details className="text-xs mt-3">
                     <summary className="text-gray-500 cursor-pointer hover:text-gray-400">
                       View raw proof data
                     </summary>

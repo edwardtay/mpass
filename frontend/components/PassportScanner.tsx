@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import Tesseract from "tesseract.js";
 
 interface PassportData {
   documentType: string;
@@ -83,13 +84,106 @@ export function PassportScanner({ onScanComplete, onClose }: PassportScannerProp
     }
   }, [stopCamera]);
 
+  const [ocrProgress, setOcrProgress] = useState(0);
+
+  // Parse MRZ (Machine Readable Zone) from OCR text
+  const parseMRZ = (text: string): Partial<PassportData> | null => {
+    // MRZ format for passport (TD3):
+    // Line 1: P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<
+    // Line 2: L898902C36UTO7408122F1204159ZE184226B<<<<<10
+
+    const lines = text.split('\n').map(l => l.trim().replace(/\s/g, '')).filter(l => l.length >= 30);
+
+    // Find MRZ lines (44 chars for TD3 passport, 36 for TD1/TD2)
+    const mrzLines = lines.filter(l => /^[A-Z0-9<]{30,}$/.test(l));
+
+    if (mrzLines.length >= 2) {
+      const line1 = mrzLines[0];
+      const line2 = mrzLines[1];
+
+      try {
+        // Parse line 1: Document type, country, name
+        const docType = line1.substring(0, 2).replace(/<+/g, '');
+        const countryCode = line1.substring(2, 5);
+        const namePart = line1.substring(5);
+        const nameParts = namePart.split('<<');
+        const surname = nameParts[0]?.replace(/<+/g, ' ').trim() || '';
+        const givenNames = nameParts[1]?.replace(/<+/g, ' ').trim() || '';
+
+        // Parse line 2: Document number, nationality, DOB, sex, expiry
+        const docNumber = line2.substring(0, 9).replace(/<+/g, '');
+        const nationality = line2.substring(10, 13);
+        const birthDateRaw = line2.substring(13, 19); // YYMMDD
+        const sex = line2.substring(20, 21);
+        const expiryRaw = line2.substring(21, 27); // YYMMDD
+
+        // Convert YYMMDD to YYYY-MM-DD
+        const parseDate = (raw: string): string => {
+          if (raw.length !== 6) return '';
+          const yy = parseInt(raw.substring(0, 2));
+          const mm = raw.substring(2, 4);
+          const dd = raw.substring(4, 6);
+          // Assume 19xx for years > 30, 20xx otherwise
+          const yyyy = yy > 30 ? 1900 + yy : 2000 + yy;
+          return `${yyyy}-${mm}-${dd}`;
+        };
+
+        return {
+          documentType: docType || 'P',
+          issuingCountry: countryCode,
+          surname,
+          givenNames,
+          documentNumber: docNumber,
+          nationality: nationality,
+          birthDate: parseDate(birthDateRaw),
+          sex: sex === 'M' || sex === 'F' ? sex : '',
+          expiryDate: parseDate(expiryRaw),
+        };
+      } catch (e) {
+        console.error('MRZ parse error:', e);
+        return null;
+      }
+    }
+    return null;
+  };
+
   const processImage = async (imageData: string) => {
     setIsProcessing(true);
-    // OCR processing - in production integrate Tesseract.js or cloud OCR for MRZ reading
-    // Currently shows manual input for user confirmation
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsProcessing(false);
-    setMode("manual");
+    setOcrProgress(0);
+
+    try {
+      // Use Tesseract.js for OCR
+      const result = await Tesseract.recognize(imageData, 'eng', {
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.round(m.progress * 100));
+          }
+        },
+      });
+
+      console.log('OCR Result:', result.data.text);
+
+      // Try to parse MRZ from OCR result
+      const parsedData = parseMRZ(result.data.text);
+
+      if (parsedData && parsedData.surname && parsedData.birthDate) {
+        // Successfully parsed MRZ - pre-fill the form
+        setManualData(prev => ({
+          ...prev,
+          ...parsedData,
+          incomeLevel: prev.incomeLevel, // Keep income level as user input
+        }));
+        console.log('MRZ parsed successfully:', parsedData);
+      } else {
+        console.log('Could not parse MRZ, showing manual input');
+      }
+    } catch (error) {
+      console.error('OCR failed:', error);
+    } finally {
+      setIsProcessing(false);
+      setOcrProgress(0);
+      setMode("manual");
+    }
   };
 
   const handleManualSubmit = () => {
@@ -178,7 +272,18 @@ export function PassportScanner({ onScanComplete, onClose }: PassportScannerProp
             <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
               <div className="text-center">
                 <div className="animate-spin w-12 h-12 border-4 border-[#65B3AE] border-t-transparent rounded-full mx-auto mb-4" />
-                <p className="text-white">Processing document...</p>
+                <p className="text-white font-medium">Scanning document with OCR...</p>
+                {ocrProgress > 0 && (
+                  <div className="mt-3 w-48 mx-auto">
+                    <div className="bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-[#65B3AE] h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${ocrProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">{ocrProgress}%</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
