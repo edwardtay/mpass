@@ -1,200 +1,80 @@
 # MantlePass
 
-**Privacy-preserving ZK-KYC identity layer for Mantle.**
+**ZK-KYC identity layer for Mantle.** Groth16 proofs for age, jurisdiction, accreditation, and AML compliance—no PII disclosure.
 
-Every DeFi protocol needs KYC. Every KYC asks for your passport, your address, your life—again and again. Your sensitive data gets copied to dozens of databases, each one a breach waiting to happen. MantlePass fixes this: scan your ID once, generate cryptographic proofs that verify you're 18+, not sanctioned, or accredited—without ever revealing your actual data. Zero-knowledge proofs mean protocols get the compliance they need, and you keep the privacy you deserve.
+## Live
 
-## Live Demo
+| | URL |
+|--|-----|
+| App | https://mantle-mpass.vercel.app |
+| Verifier | https://mantle-mpass.vercel.app/verify |
 
-**Frontend:** https://mantle-mpass.vercel.app
+## Contracts (Mantle Sepolia, Verified)
 
-**Verifier Dashboard:** https://mantle-mpass.vercel.app/verify
+| Contract | Address |
+|----------|---------|
+| MPassRegistryV2 | [`0xcfF09905F8f18B35F5A1Ba6d2822D62B3d8c48bE`](https://sepolia.mantlescan.xyz/address/0xcfF09905F8f18B35F5A1Ba6d2822D62B3d8c48bE#code) |
+| MPassAgeVerifier | [`0x073b61f5Ed26d802b05301e0E019f78Ac1A41D23`](https://sepolia.mantlescan.xyz/address/0x073b61f5Ed26d802b05301e0E019f78Ac1A41D23#code) |
 
-**GitHub:** https://github.com/edwardtay/mpass
+## Stack
 
-## Features
+- **Circuit**: circom2 → 568 R1CS constraints
+- **Proving**: Groth16 via snarkjs (browser, ~2s)
+- **Hash**: Poseidon (circomlibjs)
+- **Curve**: BN254
+- **Verification**: EVM precompiles (ecAdd, ecMul, ecPairing)
 
-- **Passport OCR Scanning** - Tesseract.js for MRZ reading with camera
-- **ZK Proof Generation** - Real Groth16 proofs in browser via snarkjs
-- **On-Chain Verification** - Verify proofs on Mantle Sepolia
-- **Proof Types** - Age (18+), Jurisdiction, Accredited Investor, AML
-- **Proof History** - Track and export generated proofs
-- **Verifier Dashboard** - Third parties can verify proofs without accessing personal data
-
-## Production ZK Stack (No Mocks)
-
-This is a **fully functional ZK implementation**, not a demo:
-
-- **Real Poseidon hashing** via circomlibjs - cryptographic commitments computed client-side
-- **Real Groth16 proofs** via snarkjs - 568 R1CS constraints, ~2s proving time in browser
-- **Real on-chain verification** - BN254 pairing checks via EVM precompiles
-- **Real trusted setup** - Powers of Tau ceremony + circuit-specific phase 2
-
-When you register a credential, the Poseidon hash is computed and stored on-chain. When you generate a proof, snarkjs runs the full Groth16 prover. The verifier contract performs actual pairing checks - invalid proofs will revert.
-
-## Live Deployment (Mantle Sepolia)
-
-| Contract | Address | Explorer |
-|----------|---------|----------|
-| Registry | `0xcfF09905F8f18B35F5A1Ba6d2822D62B3d8c48bE` | [View](https://sepolia.mantlescan.xyz/address/0xcfF09905F8f18B35F5A1Ba6d2822D62B3d8c48bE) |
-| Age Verifier (Groth16) | `0x073b61f5Ed26d802b05301e0E019f78Ac1A41D23` | [View](https://sepolia.mantlescan.xyz/address/0x073b61f5Ed26d802b05301e0E019f78Ac1A41D23) |
-
-## Technical Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           MantlePass Protocol                                 │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  User Device (Client-Side)                                              │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │  1. Passport/ID Data → SHA256 → Field Element                   │    │
-│  │  2. Generate random secret ∈ F_p (BN254 scalar field)           │    │
-│  │  3. commitment = Poseidon(birthYear, birthMonth, birthDay, s)   │    │
-│  │  4. nullifier = Poseidon(secret, eventId)                       │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │  Groth16 Proof Generation (snarkjs in browser)                  │    │
-│  │  • WASM witness calculator                                      │    │
-│  │  • ~600 constraints for age verification                        │    │
-│  │  • Proving time: ~2-3s in browser                               │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                              │                                          │
-│                              ▼                                          │
-│  ┌────────────────────────────────────────────────────────────────┐    │
-│  │  On-Chain Verification (Mantle)                                 │    │
-│  │  • BN254 precompiles (ecAdd, ecMul, ecPairing)                  │    │
-│  │  • ~200k gas for verification                                   │    │
-│  │  • Nullifier consumed on-chain (one-time use per event)         │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                                                                          │
-└─────────────────────────────────────────────────────────────────────────┘
+credential = {birthYear, birthMonth, birthDay, secret}
+commitment = Poseidon(birthYear, birthMonth, birthDay, secret)  // on-chain
+nullifier  = Poseidon(secret, eventId)                          // per-use
+
+Circuit proves:
+  ∃ secret, birthdate s.t.
+    commitment = Poseidon(birthdate, secret) ∧
+    age(birthdate) ≥ minAge ∧
+    nullifier = Poseidon(secret, eventId)
 ```
 
-## Circuit Specifications
-
-### Age Verification Circuit (`age_verify.circom`)
-
-**Constraints:** 568 R1CS
-**Proving System:** Groth16
-**Curve:** BN254
+## Circuit I/O
 
 ```
-Public Inputs (5):
-├── currentYear    (uint)
-├── currentMonth   (uint)
-├── currentDay     (uint)
-├── minAge         (uint)
-└── eventId        (uint256)
-
-Private Inputs (4):
-├── birthYear      (uint)
-├── birthMonth     (uint)
-├── birthDay       (uint)
-└── secret         (field element)
-
-Outputs (3):
-├── credentialCommitment  = Poseidon(birthYear, birthMonth, birthDay, secret)
-├── nullifier             = Poseidon(secret, eventId)
-└── ageValid              = 1 (constrained)
+Public:  [currentYear, currentMonth, currentDay, minAge, eventId]
+Private: [birthYear, birthMonth, birthDay, secret]
+Output:  [commitment, nullifier, ageValid=1]
 ```
 
-**Constraint breakdown:**
-- 2× Poseidon(4) for commitment: ~300 constraints
-- 2× Poseidon(2) for nullifier: ~150 constraints
-- LessThan/GreaterEqThan comparators: ~100 constraints
-- Boolean logic (birthday calculation): ~18 constraints
-
-### Trusted Setup
-
-```bash
-# Powers of Tau (phase 1)
-pot12.ptau  # 2^12 = 4096 constraint capacity
-
-# Circuit-specific (phase 2)
-age_verify_0000.zkey  # Initial contribution
-age_verify_final.zkey # After ceremony contribution
-```
-
-## Project Structure
-
-```
-MantlePass/
-├── circuits/
-│   ├── prod/
-│   │   ├── age_verify.circom        # Production circuit
-│   │   ├── build/
-│   │   │   ├── age_verify.r1cs      # Compiled constraints
-│   │   │   ├── age_verify.sym       # Symbol table
-│   │   │   └── age_verify_js/
-│   │   │       └── age_verify.wasm  # Witness generator
-│   │   ├── age_verify_final.zkey    # Proving key (601KB)
-│   │   └── verification_key.json    # Verification key
-│   └── lib/
-│       ├── merkle.circom            # Sparse Merkle Tree
-│       ├── nullifier.circom         # Nullifier schemes
-│       └── rsa.circom               # RSA verification
-│
-├── contracts/
-│   └── src/
-│       ├── AgeVerifier.sol          # snarkjs-generated verifier
-│       ├── MPassAgeVerifier.sol     # Wrapper with nullifier tracking
-│       ├── MPassRegistry.sol        # Credential registry
-│       ├── MPassRegistryV2.sol      # Enhanced with Merkle roots
-│       └── MPassGate.sol            # Integration base contract
-│
-└── frontend/
-    ├── public/circuits/
-    │   ├── age_verify.wasm          # Browser witness calc
-    │   ├── age_verify_final.zkey    # Browser proving
-    │   └── verification_key.json    # Local verification
-    └── lib/
-        └── zkproof.ts               # snarkjs integration
-```
-
-## Smart Contract Interface
-
-### MPassAgeVerifier
+## Contract Interface
 
 ```solidity
-// Verify proof and consume nullifier (prevents replay)
+// MPassAgeVerifier
 function verifyAgeProof(
     uint[2] calldata _pA,
     uint[2][2] calldata _pB,
     uint[2] calldata _pC,
     uint[8] calldata _pubSignals  // [commitment, nullifier, ageValid, year, month, day, minAge, eventId]
-) external returns (bool valid);
+) external returns (bool);
 
-// View-only verification (for testing/simulation)
-function verifyProofOnly(
-    uint[2] calldata _pA,
-    uint[2][2] calldata _pB,
-    uint[2] calldata _pC,
-    uint[8] calldata _pubSignals
-) external view returns (bool);
+function verifyProofOnly(...) external view returns (bool);  // no state change
+function isNullifierUsed(uint256) external view returns (bool);
+function isCredentialRegistered(uint256) external view returns (bool);
+function registerCredential(uint256 commitment) external;
 
-// State queries
-function isNullifierUsed(uint256 nullifier) external view returns (bool);
-function isCredentialRegistered(uint256 commitment) external view returns (bool);
+// MPassRegistryV2
+function credentialExists(bytes32) external view returns (bool);
+function isNullifierUsed(bytes32) external view returns (bool);
+function useNullifier(bytes32) external;
+function useEventNullifier(uint256 eventId, bytes32 nullifier) external;
+function updateRoots(bytes32 registryRoot, bytes32 revocationRoot) external;
 ```
 
-### Integration Example
+## Integration
 
 ```solidity
-import {MPassGate} from "mpass/MPassGate.sol";
-
-contract RestrictedVault is MPassGate {
-    constructor(address _verifier) MPassGate(_verifier) {
-        _setRequirements(
-            true,   // requireAge
-            18,     // minAge
-            true,   // requireJurisdiction
-            false,  // requireAccredited
-            false   // requireAML
-        );
-    }
+contract RestrictedVault {
+    IMPassAgeVerifier verifier;
 
     function deposit(
         uint[2] calldata pA,
@@ -202,145 +82,80 @@ contract RestrictedVault is MPassGate {
         uint[2] calldata pC,
         uint[8] calldata pubSignals
     ) external payable {
-        require(verifier.verifyAgeProof(pA, pB, pC, pubSignals), "Invalid proof");
-        // User is 18+ verified - proceed
+        require(verifier.verifyAgeProof(pA, pB, pC, pubSignals), "ZK");
+        // proceed
     }
 }
 ```
 
-## Local Development
-
-### Prerequisites
-
-- Node.js 18+
-- Rust (for circom2)
-- Foundry
-
-### Build Circuits
-
-```bash
-cd circuits/prod
-
-# Install circomlib
-npm install
-
-# Compile circuit (requires circom2)
-circom age_verify.circom --r1cs --wasm --sym -o build
-
-# Trusted setup
-snarkjs groth16 setup build/age_verify.r1cs pot12.ptau age_verify_0000.zkey
-snarkjs zkey contribute age_verify_0000.zkey age_verify_final.zkey --name="local" -e="$(openssl rand -hex 32)"
-snarkjs zkey export verificationkey age_verify_final.zkey verification_key.json
-snarkjs zkey export solidityverifier age_verify_final.zkey AgeVerifier.sol
-```
-
-### Deploy Contracts
-
-```bash
-cd contracts
-
-# Install dependencies
-forge install
-
-# Build
-forge build
-
-# Deploy to Mantle Sepolia
-forge create src/MPassAgeVerifier.sol:MPassAgeVerifier \
-    --rpc-url https://rpc.sepolia.mantle.xyz \
-    --private-key $PRIVATE_KEY
-```
-
-### Run Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev  # http://localhost:3000
-```
-
-## Proof Generation (Browser)
+## Client Proof Generation
 
 ```typescript
 import * as snarkjs from "snarkjs";
+import { buildPoseidon } from "circomlibjs";
 
-const input = {
-  // Private
-  birthYear: "1990",
-  birthMonth: "6",
-  birthDay: "15",
-  secret: "123456789...",  // Random field element
-  // Public
-  currentYear: "2026",
-  currentMonth: "1",
-  currentDay: "12",
-  minAge: "18",
-  eventId: "1",
-};
+const poseidon = await buildPoseidon();
+const secret = crypto.getRandomValues(new Uint8Array(31));
+const commitment = poseidon.F.toString(poseidon([birthYear, birthMonth, birthDay, secret]));
 
 const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-  input,
+  { birthYear, birthMonth, birthDay, secret, currentYear, currentMonth, currentDay, minAge, eventId },
   "/circuits/age_verify.wasm",
   "/circuits/age_verify_final.zkey"
 );
 
-// Format for contract
 const calldata = await snarkjs.groth16.exportSolidityCallData(proof, publicSignals);
 ```
 
-## Security Model
+## Gas (Mantle)
 
-**What's proven:**
-- User knows a secret `s` and birthdate `(y,m,d)` such that:
-  - `commitment = Poseidon(y, m, d, s)` matches registered commitment
-  - `age(y,m,d) >= minAge` at current date
-  - `nullifier = Poseidon(s, eventId)` is fresh
+| Op | Gas |
+|----|-----|
+| verifyAgeProof | ~200k |
+| registerCredential | ~45k |
+| useNullifier | ~20k |
 
-**What's NOT revealed:**
-- Actual birthdate
-- User's secret
-- Any PII
+## Build
 
-**Nullifier properties:**
-- Deterministic: same (secret, eventId) → same nullifier
-- Unlinkable: different eventIds → different nullifiers
-- One-time: nullifier consumed on verification
+```bash
+# Circuits
+cd circuits/prod
+circom age_verify.circom --r1cs --wasm --sym -o build
+snarkjs groth16 setup build/age_verify.r1cs pot12.ptau age_verify_0000.zkey
+snarkjs zkey contribute age_verify_0000.zkey age_verify_final.zkey --name="1" -e="$(openssl rand -hex 32)"
+snarkjs zkey export solidityverifier age_verify_final.zkey AgeVerifier.sol
 
-## Gas Costs (Mantle)
+# Contracts
+cd contracts && forge build
+forge create src/MPassAgeVerifier.sol:MPassAgeVerifier --rpc-url https://rpc.sepolia.mantle.xyz --private-key $PK
 
-| Operation | Gas |
-|-----------|-----|
-| Proof verification | ~200,000 |
-| Nullifier storage | ~20,000 |
-| Commitment registration | ~45,000 |
+# Frontend
+cd frontend && npm i && npm run dev
+```
 
-## Network Configuration
+## Security
 
-| Network | Chain ID | RPC |
-|---------|----------|-----|
-| Mantle Sepolia | 5003 | `https://rpc.sepolia.mantle.xyz` |
-| Mantle Mainnet | 5000 | `https://rpc.mantle.xyz` |
+**Proven**: User knows `(secret, birthdate)` producing `commitment` where `age ≥ minAge`
 
-## Documentation
+**Hidden**: Actual birthdate, secret, all PII
 
-- [API Documentation](./docs/API.md) - Full integration guide
-- [Circuit Compilation](./circuits/prod/COMPILE.md) - How to compile circuits
+**Nullifier**: `H(secret, eventId)` — deterministic per-event, unlinkable across events, single-use
 
 ## Circuits
 
-| Circuit | Purpose | Status |
-|---------|---------|--------|
-| `age_verify.circom` | Prove age ≥ threshold | ✅ Compiled |
-| `jurisdiction_verify.circom` | Prove not in blocked list | 📝 Written |
-| `accredited_verify.circom` | Prove income ≥ $200k | 📝 Written |
-| `aml_verify.circom` | Prove not OFAC sanctioned | 📝 Written |
+| Circuit | Constraints | Status |
+|---------|-------------|--------|
+| age_verify | 568 | Deployed |
+| jurisdiction_verify | ~800 | Written |
+| accredited_verify | ~600 | Written |
+| aml_verify | ~800 | Written |
 
 ## References
 
-- [Groth16](https://eprint.iacr.org/2016/260.pdf) - On the Size of Pairing-based Non-interactive Arguments
-- [Poseidon](https://eprint.iacr.org/2019/458.pdf) - ZK-friendly hash function
-- [circom](https://docs.circom.io/) - Circuit compiler
-- [snarkjs](https://github.com/iden3/snarkjs) - JavaScript zk-SNARK implementation
+- [Groth16](https://eprint.iacr.org/2016/260.pdf)
+- [Poseidon](https://eprint.iacr.org/2019/458.pdf)
+- [circom](https://docs.circom.io/)
+- [snarkjs](https://github.com/iden3/snarkjs)
 
 ## License
 
