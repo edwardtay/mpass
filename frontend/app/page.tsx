@@ -66,8 +66,14 @@ export default function Home() {
   const { disconnect } = useDisconnect();
   const { switchChain } = useSwitchChain();
 
+  // Fix hydration mismatch - only render wallet state after mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Auto-switch to Mantle Sepolia if on wrong chain
-  const isWrongChain = isConnected && chain?.id !== mantleSepoliaTestnet.id;
+  const isWrongChain = mounted && isConnected && chain?.id !== mantleSepoliaTestnet.id;
 
   useEffect(() => {
     if (isWrongChain && switchChain) {
@@ -356,7 +362,7 @@ export default function Home() {
           </span>
         </div>
 
-        {isConnected ? (
+        {mounted && isConnected ? (
           <div className="flex items-center gap-4">
             <span className="text-gray-400 text-sm">
               {address?.slice(0, 6)}...{address?.slice(-4)}

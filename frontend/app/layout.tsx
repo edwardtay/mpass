@@ -9,7 +9,11 @@ export const metadata: Metadata = {
   title: "MantlePass - ZK Identity for Mantle",
   description: "Privacy-preserving KYC credentials powered by zero-knowledge proofs on Mantle",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.svg", sizes: "any" },
+    ],
+    shortcut: "/favicon.svg",
     apple: "/logo.svg",
   },
 };

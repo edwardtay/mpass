@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useConnect, useReadContract } from "wagmi";
 import { mantleSepoliaTestnet } from "wagmi/chains";
 import Link from "next/link";
@@ -40,6 +40,13 @@ interface ProofData {
 export default function VerifyPage() {
   const { isConnected } = useAccount();
   const { connect, connectors } = useConnect();
+
+  // Fix hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const [proofInput, setProofInput] = useState("");
   const [parsedProof, setParsedProof] = useState<ProofData | null>(null);
   const [verificationResult, setVerificationResult] = useState<{
@@ -233,7 +240,7 @@ export default function VerifyPage() {
                   <p className="text-white font-mono text-xs break-all">{parsedProof.nullifier}</p>
                 </div>
 
-                {!isConnected ? (
+                {mounted && !isConnected ? (
                   <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
                     <p className="text-yellow-400 text-sm mb-3">
                       Connect wallet to verify on-chain
@@ -245,7 +252,7 @@ export default function VerifyPage() {
                       Connect Wallet
                     </button>
                   </div>
-                ) : (
+                ) : mounted ? (
                   <button
                     onClick={handleVerify}
                     disabled={isVerifying}
@@ -253,7 +260,7 @@ export default function VerifyPage() {
                   >
                     {isVerifying ? "Verifying..." : "Verify On-Chain"}
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           </section>
