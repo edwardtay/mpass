@@ -1,6 +1,8 @@
 # MantlePass
 
-Privacy-preserving ZK-KYC identity layer for Mantle. Verify once, prove anywhere.
+**Privacy-preserving ZK-KYC identity layer for Mantle.**
+
+Every DeFi protocol needs KYC. Every KYC asks for your passport, your address, your life—again and again. Your sensitive data gets copied to dozens of databases, each one a breach waiting to happen. MantlePass fixes this: scan your ID once, generate cryptographic proofs that verify you're 18+, not sanctioned, or accredited—without ever revealing your actual data. Zero-knowledge proofs mean protocols get the compliance they need, and you keep the privacy you deserve.
 
 ## Live Demo
 
